@@ -7,7 +7,8 @@ max_num_black_squares = 40
 min_num_black_squares = 0
 
 min_word_length = 3
-max_word_length = 8
+max_word_length_vert = 7
+max_word_length_horiz = 8
 
 squares = BoolVector('squares', width*height)
 horizontal_word_lengths = IntVector('horizontal_word_lengths', width*height)
@@ -41,11 +42,11 @@ for row in xrange(height):
     #white squares on the right edge have horizontal_word_lengths at least min_word_length
     if(col == width-1):
       solver.add(Implies(squares[index], horizontal_word_lengths[index] >= min_word_length))
-      solver.add(Implies(squares[index], horizontal_word_lengths[index] <= max_word_length))
+      solver.add(Implies(squares[index], horizontal_word_lengths[index] <= max_word_length_vert))
     #white squares whose right neighbor is black also have horizontal_word_lengths at least min_word_length
     else:
       solver.add(Implies(And(squares[index], Not(squares[right_neighbor_index])), horizontal_word_lengths[index] >= min_word_length))
-      solver.add(Implies(And(squares[index], Not(squares[right_neighbor_index])), horizontal_word_lengths[index] <= max_word_length))
+      solver.add(Implies(And(squares[index], Not(squares[right_neighbor_index])), horizontal_word_lengths[index] <= max_word_length_horiz))
 
     if(row == 0):
       #white squares on the top edge have vertical_word_length equal to 1
@@ -56,11 +57,11 @@ for row in xrange(height):
     #word-terminal white squares (on the bottom edge, or below neighbor is black)
     if(row == height-1):
       solver.add(Implies(squares[index], vertical_word_lengths[index] >= min_word_length))
-      solver.add(Implies(squares[index], vertical_word_lengths[index] <= max_word_length))
+      solver.add(Implies(squares[index], vertical_word_lengths[index] <= max_word_length_vert))
     #white squares whose below neighbor is black also have vertical_word_lengths at least min_word_length
     else:
       solver.add(Implies(And(squares[index], Not(squares[down_neighbor_index])), vertical_word_lengths[index] >= min_word_length))
-      solver.add(Implies(And(squares[index], Not(squares[down_neighbor_index])), vertical_word_lengths[index] <= max_word_length))
+      solver.add(Implies(And(squares[index], Not(squares[down_neighbor_index])), vertical_word_lengths[index] <= max_word_length_vert))
 
     #keep a running count of the number of black squares
     if(index > 0):
@@ -143,7 +144,8 @@ def addVertWordSizeConstraint(name, size, target):
   return word_size_counter
 
 wsc = addHorizWordSizeConstraint("theme-clue-length-8", 8, 4)
-addVertWordSizeConstraint("theme-clue-length-8-v", 8, 0)
+# now covered by the fact of having two maxes.
+#addVertWordSizeConstraint("theme-clue-length-8-v", 8, 0)
 
 #TODO: this is a not-quite-right thing whose job is to keep the black squares from 'clumping' or being 'cheaters'
 #The way cruciverb writes this is: "cheater" black squares (ones that do not affect the number of words in the puzzle...) are bad
