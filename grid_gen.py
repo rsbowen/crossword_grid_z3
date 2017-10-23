@@ -3,12 +3,12 @@ import time
 width = 15  
 height = 15
 
-max_num_black_squares = 40 
+max_num_black_squares = 15*15
 min_num_black_squares = 0
 
 min_word_length = 3
-max_word_length_vert = 7
-max_word_length_horiz = 8
+max_word_length_vert = 9
+max_word_length_horiz = 15 
 
 squares = BoolVector('squares', width*height)
 horizontal_word_lengths = IntVector('horizontal_word_lengths', width*height)
@@ -23,6 +23,7 @@ solver.add(squares[0] == True)
 #set up counters
 solver.add(black_square_count[0] == 0)
 
+#todo: replace all counters like black_square_count with PBEQ, PBLT, etc.
 for row in xrange(height):
   for col in xrange(width):
     #squares being black (=false) means their word_lengths are zero
@@ -42,7 +43,7 @@ for row in xrange(height):
     #white squares on the right edge have horizontal_word_lengths at least min_word_length
     if(col == width-1):
       solver.add(Implies(squares[index], horizontal_word_lengths[index] >= min_word_length))
-      solver.add(Implies(squares[index], horizontal_word_lengths[index] <= max_word_length_vert))
+      solver.add(Implies(squares[index], horizontal_word_lengths[index] <= max_word_length_horiz))
     #white squares whose right neighbor is black also have horizontal_word_lengths at least min_word_length
     else:
       solver.add(Implies(And(squares[index], Not(squares[right_neighbor_index])), horizontal_word_lengths[index] >= min_word_length))
@@ -143,14 +144,19 @@ def addVertWordSizeConstraint(name, size, target):
   solver.add(word_size_counter[width*height - 1] == target)
   return word_size_counter
 
-wsc = addHorizWordSizeConstraint("theme-clue-length-8", 8, 4)
-# now covered by the fact of having two maxes.
-#addVertWordSizeConstraint("theme-clue-length-8-v", 8, 0)
+addHorizWordSizeConstraint("theme-clue-length-2", 15, 2)
+addHorizWordSizeConstraint("theme-clue-length-3", 14, 0)
+addHorizWordSizeConstraint("theme-clue-length-4", 13, 0)
+addHorizWordSizeConstraint("theme-clue-length-5", 12, 0)
+addHorizWordSizeConstraint("theme-clue-length-6", 11, 0)
+addHorizWordSizeConstraint("theme-clue-length-7", 10, 0)
+addHorizWordSizeConstraint("theme-clue-length-8", 9, 0)
+addHorizWordSizeConstraint("theme-clue-length-9", 8, 0)
 
-#TODO: this is a not-quite-right thing whose job is to keep the black squares from 'clumping' or being 'cheaters'
+#No cheaters.
 #The way cruciverb writes this is: "cheater" black squares (ones that do not affect the number of words in the puzzle...) are bad
 #This is a simple-to-implement constraint: black squares should have at most 2 neighboring black squares
-#Another possibility is to use a 'counter' like above and, instead of outright banning these, instead allow just a few.
+#Another possibility is to use a 'counter' like above and, instead of outright banning these, just make there be a few.
 for row in xrange(height):
   for col in xrange(width):
     index = row*width+col
@@ -158,22 +164,18 @@ for row in xrange(height):
     right_neighbor_index = index+1
     up_neighbor_index = index-width
     down_neighbor_index = index+width
-    neighbor_constraints = [];
-    neighbors = [];
-    if(row != 0): neighbors.append(up_neighbor_index)
-    if(col != 0): neighbors.append(left_neighbor_index)
-    if(row != height-1): neighbors.append(down_neighbor_index)
-    if(col != width-1): neighbors.append(right_neighbor_index)
-    #must be some pair where both are white
-    for n1 in range(len(neighbors)):
-      for n2 in range(n1+1, len(neighbors)):
-        neighbor_constraints.append(And(squares[neighbors[n1]], squares[neighbors[n2]]))
-    solver.add(Implies(Not(squares[index]), Or(neighbor_constraints)))
+    up = False if row==0 else squares[up_neighbor_index]
+    left = False if col==0 else squares[left_neighbor_index]
+    down = False if row==height-1 else squares[down_neighbor_index]
+    right = False if col==width-1 else squares[right_neighbor_index]
+    solver.add(Implies(Not(squares[index]), Or(up, left)))
+    solver.add(Implies(Not(squares[index]), Or(up, right)))
+    solver.add(Implies(Not(squares[index]), Or(down, left)))
+    solver.add(Implies(Not(squares[index]), Or(down, right)))
 
 # helpful to add constraints to encourage the solver to make traditional-looking blocks by fixing the top and left.
-#this is the 4-5-4 configuration
-top_blocks = [True, True, True, True, False, True, True, True, True, True, False, True, True, True, True]
-left_blocks = [True, True, True, True, False, True, True, True, True, True, False, True, True, True, True]
+top_blocks = [True]*5 + [False] + [True]*4 + [False] + [True]*5
+left_blocks = [True]*4 + [False] + [True]*5 + [False] + [True]*5
 
 for col in xrange(width):
   solver.add(squares[col] == top_blocks[col])
