@@ -32,6 +32,27 @@ def ReachabilityNegativeTest():
   GenerateReachability(5,5,solver, squares)
   if(solver.check() != unsat): print "Reachability negative test failed"
 
+def HorizontalWordEndPredicateTest():
+  solver = Solver()
+  squares = BoolVector("squares", 5*5)
+  grid = \
+    [True, True, False, True, True,
+    True, True, False, True, True,
+    False, True, True, True, False,
+    True, True, False, True, True,
+    True, True, False, True, True]
+  expected = \
+    [False, True, False, False, True,
+    False, True, False, False, True,
+    False, False, False, True, False,
+    False, True, False, False, True,
+    False, True, False, False, True]
+  horiz_wordend = HorizontalWordEndPredicate(width,height,solver,squares)
+  if(solver.check() == unsat): print "Horizontal word end: was unsat"
+  model = solver.model()
+  for (index , (horiz_square, expected)) in enumerate(zip(horiz_wordend, expected)):
+    if(model[horiz_square] != expected): print "Horizontal word end: bad at index",index
+
 
 if __name__ == '__main__':
   print "Running tests"
