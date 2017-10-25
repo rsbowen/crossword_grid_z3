@@ -19,8 +19,16 @@ def HorizontalWordEndPredicate(width, height, solver, squares):
   return FullGridPredicate("horizontal-word-end-predicate", width, height, solver, squares, lambda m, l, r, u, d: And(m, Not(r)))
 
 def VerticalWordEndPredicate(width, height, solver, squares):
-  # Horizontal Word End means this square is white and its right neighbor isn't.
+  # Vertical Word End means this square is white and its lower neighbor isn't.
   return FullGridPredicate("vertical-word-end-predicate", width, height, solver, squares, lambda m, l, r, u, d: And(m, Not(d)))
+
+def HorizontalWordStartPredicate(width, height, solver, squares):
+  # Horizontal Word start means this square is white and its left neighbor isn't.
+  return FullGridPredicate("horizontal-word-end-predicate", width, height, solver, squares, lambda m, l, r, u, d: And(m, Not(l)))
+
+def VerticalWordStartPredicate(width, height, solver, squares):
+  # Vertical Word End means this square is white and its upper neighbor isn't.
+  return FullGridPredicate("vertical-word-end-predicate", width, height, solver, squares, lambda m, l, r, u, d: And(m, Not(u)))
 
 def GenerateReachability(width, height, solver, squares):
   #distance constraints for reachability
