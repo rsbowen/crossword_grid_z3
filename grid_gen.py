@@ -4,6 +4,17 @@ from grid_gen_lib import *
 width = 15  
 height = 15
 
+# TODO: width height row col doesn't make sense as an argument order
+def Neighbors(width, height, row, col, squares):
+  index = row*width+col
+  neighbors = {}
+  neighbors['l'] = False if col==0 else squares[index-1]
+  neighbors['r'] = False if col==width-1 else squares[index+1]
+  neighbors['u'] = False if row==0 else squares[index-width]
+  neighbors['d'] = False if row==height-1 else squares[index+width]
+  return neighbors
+
+
 max_num_black_squares = 15*15
 min_num_black_squares = 0
 
@@ -29,41 +40,29 @@ for row in xrange(height):
   for col in xrange(width):
     #squares being black (=false) means their word_lengths are zero
     index = row*width + col
-    left_neighbor_index = index-1
-    right_neighbor_index = index+1
-    up_neighbor_index = index-width
-    down_neighbor_index = index+width
+    neighbors = Neighbors(width, height, row, col, squares)
+    h_word_start = And(squares[index], Not(neighbors['l']))
+    h_word_end = And(squares[index], Not(neighbors['r']))
+    v_word_start = And(squares[index], Not(neighbors['u']))
+    v_word_end = And(squares[index], Not(neighbors['d']))
+
     solver.add(Implies(Not(squares[index]), horizontal_word_lengths[index] == 0))
     solver.add(Implies(Not(squares[index]), vertical_word_lengths[index] == 0))
-    #white squares on the left edge have horizontal_word_length equal to 1
-    if(col == 0):
-      solver.add(Implies(squares[index], horizontal_word_lengths[index]==1))
-    #white squares not on the left edge have horizontal_word_length equal to 1+their left neighbor
-    else:
-      solver.add(Implies(squares[index], horizontal_word_lengths[index] == horizontal_word_lengths[left_neighbor_index] + 1))
-    #white squares on the right edge have horizontal_word_lengths at least min_word_length
-    if(col == width-1):
-      solver.add(Implies(squares[index], horizontal_word_lengths[index] >= min_word_length))
-      solver.add(Implies(squares[index], horizontal_word_lengths[index] <= max_word_length_horiz))
-    #white squares whose right neighbor is black also have horizontal_word_lengths at least min_word_length
-    else:
-      solver.add(Implies(And(squares[index], Not(squares[right_neighbor_index])), horizontal_word_lengths[index] >= min_word_length))
-      solver.add(Implies(And(squares[index], Not(squares[right_neighbor_index])), horizontal_word_lengths[index] <= max_word_length_horiz))
+    # word starts have word length 1
+    solver.add(Implies(v_word_start, vertical_word_lengths[index] == 1))
+    solver.add(Implies(h_word_start, horizontal_word_lengths[index] == 1))
+    
+    # other squares are one longer than their neighbor
+    if(row > 0): solver.add(Implies(And(squares[index], Not(v_word_start)),
+                       vertical_word_lengths[index] == vertical_word_lengths[index-width] + 1))
+    if(col > 0): solver.add(Implies(And(squares[index], Not(h_word_start)),
+                       horizontal_word_lengths[index] == horizontal_word_lengths[index-1] + 1))
 
-    if(row == 0):
-      #white squares on the top edge have vertical_word_length equal to 1
-      solver.add(Implies(squares[index], vertical_word_lengths[index]==1))
-    else:
-      #other white squares have veritcal word length one greater than the one above
-      solver.add(Implies(squares[index], vertical_word_lengths[index] == vertical_word_lengths[up_neighbor_index] + 1))
-    #word-terminal white squares (on the bottom edge, or below neighbor is black)
-    if(row == height-1):
-      solver.add(Implies(squares[index], vertical_word_lengths[index] >= min_word_length))
-      solver.add(Implies(squares[index], vertical_word_lengths[index] <= max_word_length_vert))
-    #white squares whose below neighbor is black also have vertical_word_lengths at least min_word_length
-    else:
-      solver.add(Implies(And(squares[index], Not(squares[down_neighbor_index])), vertical_word_lengths[index] >= min_word_length))
-      solver.add(Implies(And(squares[index], Not(squares[down_neighbor_index])), vertical_word_lengths[index] <= max_word_length_vert))
+    # word lengths are bounded
+    solver.add(Implies(h_word_end, horizontal_word_lengths[index] >= min_word_length))
+    solver.add(Implies(h_word_end, horizontal_word_lengths[index] <= max_word_length_horiz))
+    solver.add(Implies(v_word_end, vertical_word_lengths[index] >= min_word_length))
+    solver.add(Implies(v_word_end, vertical_word_lengths[index] <= max_word_length_vert))
 
     #keep a running count of the number of black squares
     if(index > 0):
