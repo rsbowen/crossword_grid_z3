@@ -15,7 +15,7 @@ def Neighbors(width, height, row, col, squares):
   return neighbors
 
 
-max_num_black_squares = 15*15
+max_num_black_squares = 40
 min_num_black_squares = 0
 
 min_word_length = 3
@@ -25,15 +25,11 @@ max_word_length_horiz = 15
 squares = BoolVector('squares', width*height)
 horizontal_word_lengths = IntVector('horizontal_word_lengths', width*height)
 vertical_word_lengths = IntVector('vertical_word_lengths', width*height)
-black_square_count = IntVector('black_square_count', width*height)
 
 solver = Solver()
 
 #top left square is always white
 solver.add(squares[0] == True)
-
-#set up counters
-solver.add(black_square_count[0] == 0)
 
 #todo: replace all counters like black_square_count with PBEQ, PBLT, etc.
 for row in xrange(height):
@@ -64,13 +60,9 @@ for row in xrange(height):
     solver.add(Implies(v_word_end, vertical_word_lengths[index] >= min_word_length))
     solver.add(Implies(v_word_end, vertical_word_lengths[index] <= max_word_length_vert))
 
-    #keep a running count of the number of black squares
-    if(index > 0):
-      solver.add(Implies(Not(squares[index]), black_square_count[index] == black_square_count[index-1]+1))
-      solver.add(Implies(squares[index], black_square_count[index] == black_square_count[index-1]))
-
-solver.add(black_square_count[width*height - 1] <= max_num_black_squares)
-solver.add(black_square_count[width*height - 1] >= min_num_black_squares)
+black_square_pb_tuple =tuple( ( (Not(squares[index]), 1) for index in xrange(width*height)))
+solver.add(PbGe(black_square_pb_tuple, min_num_black_squares))
+solver.add(PbLe(black_square_pb_tuple, max_num_black_squares))
 
 #symmetry constraints, TODO: this might be faster if we just kept half of the squares
 for row in xrange(height):
@@ -176,7 +168,6 @@ def ComputeAndPrintBoard():
       else: board.append("#")
     board.append("|\n")
   print "".join(board)
-  print m[black_square_count[width*height-1]]
 
 def AnotherBoard():
   m=solver.model()
